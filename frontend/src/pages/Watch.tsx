@@ -38,7 +38,8 @@ import {
 import type { StreamUrl, SubtitleTrack } from '../types'
 import {
   getPlayableHlsQualities, pickDefaultStream,
-  pickProgressiveFallback, proxyMediaUrl, isHlsSource,
+  pickPreferredHlsLevel, pickProgressiveFallback,
+  proxyMediaUrl, isHlsSource, normalizePreferredQuality,
 } from '../utils/playback'
 import type { HlsQualityOption } from '../utils/playback'
 
@@ -80,7 +81,7 @@ export default function Watch() {
   const {
     volume, setVolume,
     playbackRate, setPlaybackRate,
-    preferredQuality,
+    preferredQuality, setPreferredQuality,
     subtitlesEnabled, setSubtitlesEnabled,
     preferredSubtitleLang,
     backgroundAudioMode, setBackgroundAudioMode,
@@ -130,6 +131,21 @@ export default function Watch() {
   const videoElementKey = useHls ? `hls-${contentKey}` : effectivePlaybackUrl
   const preferredQualityRef = useRef(preferredQuality)
   preferredQualityRef.current = preferredQuality
+
+  const applyHlsQuality = useCallback((hlsInstance: Hls | null, desired: number | 'auto') => {
+    if (!hlsInstance) return
+
+    if (desired === 'auto') {
+      hlsInstance.startLevel = -1
+      hlsInstance.currentLevel = -1
+      hlsInstance.nextLevel = -1
+      return
+    }
+
+    hlsInstance.startLevel = desired
+    hlsInstance.currentLevel = desired
+    hlsInstance.nextLevel = desired
+  }, [])
 
   const fallbackFromHls = useCallback(() => {
     if (!stream) return
@@ -237,12 +253,27 @@ export default function Watch() {
       )
       setHlsQualities(qualities)
 
+      if (qualities.length === 0) {
+        fallbackFromHls()
+        return
+      }
+
       if (isYoutubeHls) {
-        if (qualities.length === 0) {
-          fallbackFromHls()
-          return
+        const nextPreferred = normalizePreferredQuality(preferredQuality)
+        if (nextPreferred === 'auto') {
+          applyHlsQuality(hls, 'auto')
+          setSelectedHlsQuality('auto')
+        } else {
+          const preferredLevelIndex = pickPreferredHlsLevel(
+            hls.levels.map((level, levelIndex) => ({ ...level, levelIndex })),
+            preferredQuality,
+          )
+          const preferredHeight = qualities.find(q => q.levelIndex === preferredLevelIndex)?.height
+            ?? qualities[0].height
+
+          applyHlsQuality(hls, preferredLevelIndex)
+          setSelectedHlsQuality(preferredHeight)
         }
-        setSelectedHlsQuality('auto')
       }
 
       video.play().catch(() => { })
@@ -439,14 +470,24 @@ export default function Watch() {
   // Download handler
   // ─────────────────────────────────────────────────────────
   const handleDownload = async () => {
-    if (!selectedStream || !stream) return
+    if (!stream) return
+
+    const chosenPreference = normalizePreferredQuality(preferredQuality)
+    const fallbackStream = pickDefaultStream(stream, chosenPreference).stream ?? selectedStream
+    const downloadStream =
+      !backgroundAudioMode && chosenPreference !== 'auto' && fallbackStream
+        ? fallbackStream
+        : selectedStream ?? fallbackStream
+
+    if (!downloadStream) return
+
     await startDownload.mutateAsync({
       videoId: stream.id,
       title: stream.title,
       uploader: stream.uploader,
       thumbnailUrl: stream.thumbnailUrl,
-      streamUrl: selectedStream.url,
-      quality: selectedStream.quality,
+      streamUrl: downloadStream.url,
+      quality: downloadStream.quality,
       isAudioOnly: backgroundAudioMode,
     })
     alert('Download started! Check the Downloads page.')
@@ -662,8 +703,9 @@ export default function Watch() {
             <span className="text-xs text-neutral-400">Quality:</span>
             <button
               onClick={() => {
-                if (hlsRef.current) hlsRef.current.nextLevel = -1
+                applyHlsQuality(hlsRef.current, 'auto')
                 setSelectedHlsQuality('auto')
+                setPreferredQuality('auto')
               }}
               className={`text-xs px-2.5 py-1 rounded-lg transition-colors
                 ${selectedHlsQuality === 'auto'
@@ -676,8 +718,9 @@ export default function Watch() {
               <button
                 key={height}
                 onClick={() => {
-                  if (hlsRef.current) hlsRef.current.nextLevel = levelIndex
+                  applyHlsQuality(hlsRef.current, levelIndex)
                   setSelectedHlsQuality(height)
+                  setPreferredQuality(`${height}p`)
                 }}
                 className={`text-xs px-2.5 py-1 rounded-lg transition-colors
                   ${selectedHlsQuality === height
