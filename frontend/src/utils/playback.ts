@@ -44,6 +44,13 @@ export interface HlsQualityOption {
   levelIndex: number
 }
 
+function resolutionHeight(quality: string): number | null {
+  const match = quality.match(/(\d+)/)
+  if (!match) return null
+  const value = Number.parseInt(match[1], 10)
+  return Number.isFinite(value) ? value : null
+}
+
 export function pickProgressiveFallback(
   stream: StreamModel,
   preferredQuality: string,
@@ -51,11 +58,23 @@ export function pickProgressiveFallback(
   const progressiveVideo = stream.videoStreams.filter(s =>
     !s.isVideoOnly && !isHlsSource(s.url, s.format),
   )
-  const preferredVideo = progressiveVideo.find(s =>
-    s.quality.startsWith(preferredQuality),
-  )
 
-  return preferredVideo ?? progressiveVideo[0]
+  const normalizedPreferred = normalizePreferredQuality(preferredQuality)
+  const preferredHeight = normalizedPreferred === 'auto'
+    ? null
+    : resolutionHeight(normalizedPreferred)
+
+  if (preferredHeight !== null) {
+    const exactMatch = progressiveVideo.find(s => resolutionHeight(s.quality) === preferredHeight)
+    if (exactMatch) return exactMatch
+
+    const lowerMatch = [...progressiveVideo]
+      .sort((a, b) => (resolutionHeight(b.quality) ?? 0) - (resolutionHeight(a.quality) ?? 0))
+      .find(s => (resolutionHeight(s.quality) ?? 0) < preferredHeight)
+    if (lowerMatch) return lowerMatch
+  }
+
+  return progressiveVideo[0]
     ?? stream.audioStreams.find(s => !isHlsSource(s.url, s.format))
     ?? null
 }
@@ -91,6 +110,36 @@ export function getPlayableHlsQualities(levels: readonly HlsLevelInfo[]): HlsQua
   return [...bestByHeight.values()]
     .sort((a, b) => a.height - b.height)
     .map(({ height, levelIndex }) => ({ height, levelIndex }))
+}
+
+export function normalizePreferredQuality(quality: string | null | undefined): string {
+  if (!quality) return 'auto'
+  const trimmed = quality.trim()
+  return trimmed.toLowerCase() === 'auto' ? 'auto' : trimmed
+}
+
+export function pickPreferredHlsLevel(
+  levels: readonly HlsLevelInfo[],
+  preferredQuality: string,
+): number {
+  const playableLevels = getPlayableHlsQualities(levels)
+  if (playableLevels.length === 0) return -1
+
+  const normalizedPreferred = normalizePreferredQuality(preferredQuality)
+  if (normalizedPreferred === 'auto') return -1
+
+  const preferredHeight = Number.parseInt(normalizedPreferred.match(/\d+/)?.[0] ?? '', 10)
+  if (!Number.isFinite(preferredHeight)) return playableLevels[0].levelIndex
+
+  const exactMatch = playableLevels.find(level => level.height === preferredHeight)
+  if (exactMatch) return exactMatch.levelIndex
+
+  const lowerMatch = [...playableLevels]
+    .reverse()
+    .find(level => level.height < preferredHeight)
+  if (lowerMatch) return lowerMatch.levelIndex
+
+  return playableLevels[0].levelIndex
 }
 
 /**

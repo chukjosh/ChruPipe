@@ -39,7 +39,7 @@ const ALL_CATEGORIES: SponsorCategory[] = [
 const PLAYBACK_SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]
 
 /** Common quality options */
-const QUALITY_OPTIONS = ['2160p', '1440p', '1080p', '720p', '480p', '360p', '240p', '144p']
+const QUALITY_OPTIONS = ['auto', '2160p', '1440p', '1080p', '720p', '480p', '360p', '240p', '144p']
 
 export default function Settings() {
   // const navigate = useNavigate() // Commented out to fix TS6133
@@ -117,6 +117,9 @@ export default function Settings() {
     sponsorBlockCategories, setSponsorBlockCategories,
     recentSearches, removeRecentSearch, clearRecentSearches,
   } = useAppStore()
+  const normalizedPreferredQuality = preferredQuality.toLowerCase() === 'auto'
+    ? 'auto'
+    : preferredQuality
 
   /** Toggle a SponsorBlock category on/off */
   const toggleCategory = (cat: SponsorCategory) => {
@@ -194,13 +197,13 @@ export default function Settings() {
               </p>
             </div>
             <select
-              value={preferredQuality}
+              value={normalizedPreferredQuality}
               onChange={e => setPreferredQuality(e.target.value)}
               className="bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-1.5
                          text-sm text-primary outline-none focus:border-red-500"
             >
               {QUALITY_OPTIONS.map(q => (
-                <option key={q} value={q}>{q}</option>
+                <option key={q} value={q}>{q === 'auto' ? 'Auto' : q}</option>
               ))}
             </select>
           </div>
