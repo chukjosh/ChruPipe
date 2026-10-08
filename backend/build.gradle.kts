@@ -12,6 +12,10 @@ application {
     mainClass = "com.newpipeweb.ApplicationKt"
 }
 
+tasks.named<JavaExec>("run") {
+    systemProperty("io.ktor.development", "true")
+}
+
 ktor {
     fatJar {
         archiveFileName.set("app.jar")
