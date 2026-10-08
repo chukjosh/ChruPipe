@@ -289,7 +289,10 @@ data class DownloadModel(
     val isAudioOnly: Boolean,
     val createdAt: String,
     val service: String = "youtube",
-    val streamUrl: String? = null  // stored for retry; null on legacy records
+    val streamUrl: String? = null,  // stored for retry; null on legacy records
+    val audioStreamUrl: String? = null,
+    val subtitleUrl: String? = null,
+    val subtitleLanguage: String? = null
 )
 
 // ─────────────────────────────────────────────
@@ -365,5 +368,8 @@ data class StartDownloadRequest(
     val streamUrl: String,
     val quality: String,
     val isAudioOnly: Boolean = false,
+    val audioStreamUrl: String? = null,
+    val subtitleUrl: String? = null,
+    val subtitleLanguage: String? = null,
     val service: String = "youtube"
 )

@@ -36,7 +36,21 @@ import {
   Headphones, Subtitles, SkipForward,
 } from 'lucide-react'
 import type { StreamUrl, SubtitleTrack } from '../types'
-import { pickDefaultStream, proxyMediaUrl, isHlsSource } from '../utils/playback'
+import {
+  getPlayableHlsQualities, pickDefaultStream,
+  pickPreferredHlsLevel, pickProgressiveFallback, pickDownloadStreams,
+  proxyMediaUrl, isHlsSource, normalizePreferredQuality,
+} from '../utils/playback'
+import type { HlsQualityOption } from '../utils/playback'
+
+type HlsAudioTrack = {
+  id: number
+  name: string
+  lang?: string
+  audioCodec?: string
+  default: boolean
+  autoselect: boolean
+}
 
 export default function Watch() {
   const { id } = useParams<{ id: string }>()
@@ -67,7 +81,7 @@ export default function Watch() {
   const {
     volume, setVolume,
     playbackRate, setPlaybackRate,
-    preferredQuality,
+    preferredQuality, setPreferredQuality,
     subtitlesEnabled, setSubtitlesEnabled,
     preferredSubtitleLang,
     backgroundAudioMode, setBackgroundAudioMode,
@@ -77,10 +91,18 @@ export default function Watch() {
   // ─── Local UI state ───────────────────────────────────────
   const videoRef = useRef<HTMLVideoElement>(null)
   const trackRef = useRef<HTMLTrackElement>(null)
+  const hlsRef = useRef<Hls | null>(null)
+  const pendingPlaybackPositionRef = useRef<number | null>(null)
+  const restoredHistoryForRef = useRef<string | null>(null)
 
   const [selectedStream, setSelectedStream] = useState<StreamUrl | null>(null)
   const [useHls, setUseHls] = useState(false)
   const [hlsSourceUrl, setHlsSourceUrl] = useState<string | null>(null)
+  const [hlsQualities, setHlsQualities] = useState<HlsQualityOption[]>([])
+  const [selectedHlsQuality, setSelectedHlsQuality] = useState<number | 'auto'>('auto')
+  const [hlsAudioTracks, setHlsAudioTracks] = useState<HlsAudioTrack[]>([])
+  const [selectedHlsAudioTrack, setSelectedHlsAudioTrack] = useState<number | null>(null)
+  const [hlsFallbackNotice, setHlsFallbackNotice] = useState(false)
   const [selectedSubtitle, setSelectedSubtitle] = useState<SubtitleTrack | null>(null)
   const [directPlaybackFallback, setDirectPlaybackFallback] = useState(false)
   const [mediaError, setMediaError] = useState(false)
@@ -105,6 +127,46 @@ export default function Watch() {
 
   const playbackUrl = playbackSourceUrl ? proxyMediaUrl(playbackSourceUrl, stream?.title) : ''
   const effectivePlaybackUrl = directPlaybackFallback ? playbackSourceUrl : playbackUrl
+  const isYoutubeHls = stream?.service === 'youtube' && Boolean(hlsSourceUrl) && useHls
+  const videoElementKey = useHls ? `hls-${contentKey}` : effectivePlaybackUrl
+  const preferredQualityRef = useRef(preferredQuality)
+  preferredQualityRef.current = preferredQuality
+
+  const applyHlsQuality = useCallback((hlsInstance: Hls | null, desired: number | 'auto') => {
+    if (!hlsInstance) return
+
+    if (desired === 'auto') {
+      hlsInstance.startLevel = -1
+      hlsInstance.currentLevel = -1
+      hlsInstance.nextLevel = -1
+      return
+    }
+
+    hlsInstance.startLevel = desired
+    hlsInstance.currentLevel = desired
+    hlsInstance.nextLevel = desired
+  }, [])
+
+  const fallbackFromHls = useCallback(() => {
+    if (!stream) return
+    const video = videoRef.current
+    pendingPlaybackPositionRef.current = video && Number.isFinite(video.currentTime)
+      ? video.currentTime
+      : null
+    const fallback = backgroundAudioMode
+      ? stream.audioStreams.find(s => !isHlsSource(s.url, s.format)) ?? null
+      : pickProgressiveFallback(stream, preferredQualityRef.current)
+
+    setSelectedStream(fallback)
+    setUseHls(false)
+    setHlsSourceUrl(null)
+    setHlsQualities([])
+    setHlsAudioTracks([])
+    setSelectedHlsAudioTrack(null)
+    setSelectedHlsQuality('auto')
+    setHlsFallbackNotice(true)
+    if (!fallback) setMediaError(true)
+  }, [stream, backgroundAudioMode])
 
   useEffect(() => {
     setDirectPlaybackFallback(false)
@@ -121,6 +183,9 @@ export default function Watch() {
     setSelectedStream(picked.stream)
     setUseHls(picked.useHls)
     setHlsSourceUrl(picked.hlsUrl)
+    setHlsAudioTracks([])
+    setSelectedHlsAudioTrack(null)
+    setHlsFallbackNotice(false)
 
     if (subtitlesEnabled && stream.subtitles.length > 0) {
       const preferred = stream.subtitles.find(s => s.languageCode === preferredSubtitleLang)
@@ -128,45 +193,147 @@ export default function Watch() {
     }
   }, [stream?.id, preferredQuality, subtitlesEnabled, preferredSubtitleLang])
 
-  // HLS playback (PeerTube and other HLS-only sources)
+  // HLS playback (YouTube adaptive streams and existing HLS sources)
   useEffect(() => {
     const video = videoRef.current
     if (!video || !playbackUrl || !useHls) return
 
-    if (video.canPlayType('application/vnd.apple.mpegurl')) {
+    if (!isYoutubeHls && video.canPlayType('application/vnd.apple.mpegurl')) {
       video.src = playbackUrl
       return
     }
 
-    if (!Hls.isSupported()) return
+    if (!Hls.isSupported()) {
+      fallbackFromHls()
+      return
+    }
 
     const hls = new Hls({
       xhrSetup: (xhr, url) => {
         xhr.open('GET', proxyMediaUrl(url, stream?.title), true)
       },
     })
-    hls.loadSource(playbackUrl)
-    hls.attachMedia(video)
-    hls.on(Hls.Events.MANIFEST_PARSED, () => {
-      video.play().catch(() => { })
+    hlsRef.current = hls
+    let networkRecoveryAttempts = 0
+    let mediaRecoveryAttempts = 0
+    let preferredAudioTrackSelected = false
+
+    const updateAudioTracks = (tracks: typeof hls.audioTracks) => {
+      const audioTracks = tracks.map(track => ({
+        id: track.id,
+        name: track.name,
+        lang: track.lang,
+        audioCodec: track.audioCodec,
+        default: track.default,
+        autoselect: track.autoselect,
+      }))
+      setHlsAudioTracks(audioTracks)
+
+      if (preferredAudioTrackSelected || audioTracks.length === 0) return
+      const englishTrack = audioTracks.find(track =>
+        /^en(?:[-_]|$)/i.test(track.lang ?? '') || /\benglish\b/i.test(track.name),
+      )
+      const defaultTrack = audioTracks.find(track => track.default && track.autoselect)
+        ?? audioTracks.find(track => track.default)
+        ?? audioTracks[0]
+      const preferredTrack = englishTrack ?? defaultTrack
+      preferredAudioTrackSelected = true
+      setSelectedHlsAudioTrack(preferredTrack.id)
+      if (hls.audioTrack !== preferredTrack.id) hls.audioTrack = preferredTrack.id
+    }
+
+    hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, (_event, data) => {
+      updateAudioTracks(data.audioTracks)
     })
 
-    return () => hls.destroy()
-  }, [playbackUrl, useHls])
+    hls.on(Hls.Events.MANIFEST_PARSED, () => {
+      updateAudioTracks(hls.audioTracks)
+      const qualities = getPlayableHlsQualities(
+        hls.levels.map((level, levelIndex) => ({ ...level, levelIndex })),
+      )
+      setHlsQualities(qualities)
+
+      if (qualities.length === 0) {
+        fallbackFromHls()
+        return
+      }
+
+      if (isYoutubeHls) {
+        const nextPreferred = normalizePreferredQuality(preferredQuality)
+        if (nextPreferred === 'auto') {
+          applyHlsQuality(hls, 'auto')
+          setSelectedHlsQuality('auto')
+        } else {
+          const preferredLevelIndex = pickPreferredHlsLevel(
+            hls.levels.map((level, levelIndex) => ({ ...level, levelIndex })),
+            preferredQuality,
+          )
+          const preferredHeight = qualities.find(q => q.levelIndex === preferredLevelIndex)?.height
+            ?? qualities[0].height
+
+          applyHlsQuality(hls, preferredLevelIndex)
+          setSelectedHlsQuality(preferredHeight)
+        }
+      }
+
+      video.play().catch(() => { })
+    })
+    hls.on(Hls.Events.ERROR, (_event, data) => {
+      if (!data.fatal) return
+
+      if (data.type === Hls.ErrorTypes.NETWORK_ERROR && networkRecoveryAttempts === 0) {
+        networkRecoveryAttempts += 1
+        hls.startLoad()
+        return
+      }
+      if (data.type === Hls.ErrorTypes.MEDIA_ERROR && mediaRecoveryAttempts === 0) {
+        mediaRecoveryAttempts += 1
+        hls.recoverMediaError()
+        return
+      }
+
+      fallbackFromHls()
+    })
+
+    hls.loadSource(playbackUrl)
+    hls.attachMedia(video)
+
+    return () => {
+      if (hlsRef.current === hls) hlsRef.current = null
+      hls.destroy()
+    }
+  }, [playbackUrl, useHls, isYoutubeHls, stream?.title, fallbackFromHls])
 
   // ─────────────────────────────────────────────────────────
   // Restore resume position after video element loads
   // ─────────────────────────────────────────────────────────
   useEffect(() => {
     if (!videoRef.current || !id || !history) return
+    if (isYoutubeHls && restoredHistoryForRef.current === contentKey) return
+    if (isYoutubeHls) restoredHistoryForRef.current = contentKey
 
     // Find the last watch position for this video from history
     const entry = history.find(h => h.videoId === contentKey)
     if (entry && entry.watchedSeconds > 10) {
-      // Only restore if more than 10 seconds in (ignore near-start)
-      videoRef.current.currentTime = entry.watchedSeconds
+      const video = videoRef.current
+      if (!isYoutubeHls) {
+        video.currentTime = entry.watchedSeconds
+        return
+      }
+      const restorePosition = () => {
+        if (video.duration > entry.watchedSeconds) {
+          video.currentTime = entry.watchedSeconds
+        }
+      }
+
+      if (video.readyState >= HTMLMediaElement.HAVE_METADATA) {
+        restorePosition()
+      } else {
+        video.addEventListener('loadedmetadata', restorePosition, { once: true })
+        return () => video.removeEventListener('loadedmetadata', restorePosition)
+      }
     }
-  }, [playbackUrl, history, contentKey])
+  }, [playbackUrl, history, contentKey, id, isYoutubeHls])
 
   // ─────────────────────────────────────────────────────────
   // Sync volume and playback rate from stored preferences
@@ -285,6 +452,8 @@ export default function Watch() {
         format: bestAudio.format,
         isVideoOnly: false,
       })
+      setHlsAudioTracks([])
+      setSelectedHlsAudioTrack(null)
       setUseHls(isHlsSource(bestAudio.url, bestAudio.format))
       setHlsSourceUrl(null)
     } else if (!newMode) {
@@ -292,6 +461,8 @@ export default function Watch() {
       setSelectedStream(picked.stream)
       setUseHls(picked.useHls)
       setHlsSourceUrl(picked.hlsUrl)
+      setHlsAudioTracks([])
+      setSelectedHlsAudioTrack(null)
     }
   }
 
@@ -299,14 +470,29 @@ export default function Watch() {
   // Download handler
   // ─────────────────────────────────────────────────────────
   const handleDownload = async () => {
-    if (!selectedStream || !stream) return
+    if (!stream) return
+
+    const chosenPreference = normalizePreferredQuality(preferredQuality)
+    const downloadStreams = backgroundAudioMode
+      ? { video: selectedStream, audio: null }
+      : pickDownloadStreams(stream, chosenPreference)
+    const downloadStream = downloadStreams.video ?? selectedStream
+
+    if (!downloadStream) return
+    const downloadSubtitle = stream.subtitles.find(subtitle =>
+      /^en(?:[-_]|$)/i.test(subtitle.languageCode) || /\benglish\b/i.test(subtitle.languageName),
+    ) ?? stream.subtitles[0]
+
     await startDownload.mutateAsync({
       videoId: stream.id,
       title: stream.title,
       uploader: stream.uploader,
       thumbnailUrl: stream.thumbnailUrl,
-      streamUrl: selectedStream.url,
-      quality: selectedStream.quality,
+      streamUrl: downloadStream.url,
+      audioStreamUrl: downloadStreams.video?.isVideoOnly ? downloadStreams.audio?.url : undefined,
+      subtitleUrl: backgroundAudioMode ? undefined : downloadSubtitle?.url,
+      subtitleLanguage: backgroundAudioMode ? undefined : downloadSubtitle?.languageCode,
+      quality: downloadStream.quality,
       isAudioOnly: backgroundAudioMode,
     })
     alert('Download started! Check the Downloads page.')
@@ -373,13 +559,22 @@ export default function Watch() {
           {effectivePlaybackUrl ? (
             <video
               ref={videoRef}
-              key={effectivePlaybackUrl}
+              key={videoElementKey}
               src={useHls ? undefined : effectivePlaybackUrl}
               controls
               autoPlay
               playsInline
               className="w-full h-full"
               onTimeUpdate={handleTimeUpdate}
+              onLoadedMetadata={() => {
+                const pendingPosition = pendingPlaybackPositionRef.current
+                const video = videoRef.current
+                if (pendingPosition === null || !video) return
+                video.currentTime = Number.isFinite(video.duration)
+                  ? Math.min(pendingPosition, video.duration)
+                  : pendingPosition
+                pendingPlaybackPositionRef.current = null
+              }}
               onVolumeChange={handleVolumeChange}
               onRateChange={handleRateChange}
               onError={() => {
@@ -390,7 +585,7 @@ export default function Watch() {
                 }
               }}
             >
-              {selectedSubtitle && subtitlesEnabled && !useHls && (
+              {selectedSubtitle && subtitlesEnabled && (
                 <track
                   ref={trackRef}
                   kind="subtitles"
@@ -423,6 +618,12 @@ export default function Watch() {
             </div>
           )}
         </div>
+
+        {hlsFallbackNotice && (
+          <div role="status" className="mt-2 text-xs text-amber-400">
+            Adaptive playback is unavailable. Using a progressive stream.
+          </div>
+        )}
 
         {/* ── Player toolbar ─────────────────────────────── */}
         <div className="mt-3 flex items-center gap-2 flex-wrap">
@@ -464,6 +665,30 @@ export default function Watch() {
             </button>
           )}
 
+          {useHls && !backgroundAudioMode && hlsAudioTracks.length > 1 && (
+            <label className="flex items-center gap-2 text-xs text-neutral-400">
+              Audio:
+              <select
+                aria-label="Audio language"
+                value={selectedHlsAudioTrack ?? ''}
+                onChange={event => {
+                  const trackId = Number(event.target.value)
+                  if (!Number.isFinite(trackId)) return
+                  if (hlsRef.current) hlsRef.current.audioTrack = trackId
+                  setSelectedHlsAudioTrack(trackId)
+                }}
+                className="rounded bg-neutral-800 px-2 py-1 text-neutral-200"
+              >
+                {hlsAudioTracks.map(track => (
+                  <option key={track.id} value={track.id}>
+                    {track.lang ? `${track.name} (${track.lang})` : track.name}
+                    {track.default ? ' (default)' : ''}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+
           {/* SponsorBlock indicator (read-only — configure in Settings) */}
           {sponsorBlockEnabled && (
             <div
@@ -478,7 +703,40 @@ export default function Watch() {
         </div>
 
         {/* ── Quality selector ───────────────────────────── */}
-        {stream.videoStreams.filter(s => !s.isVideoOnly).length > 0 && !backgroundAudioMode && (
+        {isYoutubeHls && !backgroundAudioMode ? (
+          <div className="mt-3 flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-neutral-400">Quality:</span>
+            <button
+              onClick={() => {
+                applyHlsQuality(hlsRef.current, 'auto')
+                setSelectedHlsQuality('auto')
+                setPreferredQuality('auto')
+              }}
+              className={`text-xs px-2.5 py-1 rounded-lg transition-colors
+                ${selectedHlsQuality === 'auto'
+                  ? 'bg-red-600 text-white'
+                  : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'}`}
+            >
+              Auto
+            </button>
+            {hlsQualities.map(({ height, levelIndex }) => (
+              <button
+                key={height}
+                onClick={() => {
+                  applyHlsQuality(hlsRef.current, levelIndex)
+                  setSelectedHlsQuality(height)
+                  setPreferredQuality(`${height}p`)
+                }}
+                className={`text-xs px-2.5 py-1 rounded-lg transition-colors
+                  ${selectedHlsQuality === height
+                    ? 'bg-red-600 text-white'
+                    : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'}`}
+              >
+                {height}p
+              </button>
+            ))}
+          </div>
+        ) : stream.videoStreams.filter(s => !s.isVideoOnly).length > 0 && !backgroundAudioMode ? (
           <div className="mt-3 flex items-center gap-2 flex-wrap">
             <span className="text-xs text-neutral-400">Quality:</span>
             {stream.videoStreams
@@ -500,7 +758,7 @@ export default function Watch() {
                 </button>
               ))}
           </div>
-        )}
+        ) : null}
 
         {/* ── Subtitle track selector ────────────────────── */}
         {subtitlesEnabled && stream.subtitles.length > 0 && (

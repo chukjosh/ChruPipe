@@ -27,7 +27,7 @@ interface AppState {
   playbackRate: number
   setPlaybackRate: (rate: number) => void
 
-  // Default quality preference (e.g. "720p", "1080p")
+  // Default quality preference (e.g. "720p", "1080p", "auto")
   preferredQuality: string
   setPreferredQuality: (quality: string) => void
 
@@ -109,7 +109,12 @@ export const useAppStore = create<AppState>()(
       setPlaybackRate: (rate) => set({ playbackRate: rate }),
 
       preferredQuality: '720p',
-      setPreferredQuality: (quality) => set({ preferredQuality: quality }),
+      setPreferredQuality: (quality) => {
+        const normalized = quality.trim()
+        set({
+          preferredQuality: normalized.toLowerCase() === 'auto' ? 'auto' : normalized || 'auto',
+        })
+      },
 
       subtitlesEnabled: false,
       setSubtitlesEnabled: (enabled) => set({ subtitlesEnabled: enabled }),
