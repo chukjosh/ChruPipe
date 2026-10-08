@@ -1,5 +1,5 @@
-NewPipeWeb contribution guidelines
-===================================
+LocoStream contribution guidelines
+=================================
 
 ## AI policy
 

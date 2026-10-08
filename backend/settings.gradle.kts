@@ -1,1 +1,1 @@
-rootProject.name = "newpipeweb-backend"
+rootProject.name = "locostream-backend"
