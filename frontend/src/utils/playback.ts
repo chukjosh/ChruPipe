@@ -30,6 +30,69 @@ export function isHlsSource(url: string, format?: string): boolean {
   return f.includes('M3U8') || u.includes('.m3u8') || u.includes('application/vnd.apple.mpegurl')
 }
 
+export interface HlsLevelInfo {
+  height: number
+  levelIndex: number
+  codecSet?: string
+  videoCodec?: string
+  audioCodec?: string
+  supported?: boolean
+}
+
+export interface HlsQualityOption {
+  height: number
+  levelIndex: number
+}
+
+export function pickProgressiveFallback(
+  stream: StreamModel,
+  preferredQuality: string,
+): StreamUrl | null {
+  const progressiveVideo = stream.videoStreams.filter(s =>
+    !s.isVideoOnly && !isHlsSource(s.url, s.format),
+  )
+  const preferredVideo = progressiveVideo.find(s =>
+    s.quality.startsWith(preferredQuality),
+  )
+
+  return preferredVideo ?? progressiveVideo[0]
+    ?? stream.audioStreams.find(s => !isHlsSource(s.url, s.format))
+    ?? null
+}
+
+function hlsLevelIsPlayable(level: HlsLevelInfo): boolean {
+  if (level.supported === false) return false
+
+  const codecs = [level.videoCodec, level.audioCodec]
+    .filter((codec): codec is string => Boolean(codec))
+    .join(',') || level.codecSet || ''
+  if (!codecs || typeof MediaSource === 'undefined' || !MediaSource.isTypeSupported) {
+    return true
+  }
+
+  return ['video/mp4', 'video/mp2t'].some(type => {
+    try {
+      return MediaSource.isTypeSupported(`${type}; codecs="${codecs}"`)
+    } catch {
+      return false
+    }
+  })
+}
+
+/** Keep the first browser-playable HLS level for each resolution. */
+export function getPlayableHlsQualities(levels: readonly HlsLevelInfo[]): HlsQualityOption[] {
+  const bestByHeight = new Map<number, HlsLevelInfo>()
+
+  levels.forEach(level => {
+    if (level.height <= 0 || !hlsLevelIsPlayable(level)) return
+    if (!bestByHeight.has(level.height)) bestByHeight.set(level.height, level)
+  })
+
+  return [...bestByHeight.values()]
+    .sort((a, b) => a.height - b.height)
+    .map(({ height, levelIndex }) => ({ height, levelIndex }))
+}
+
 /**
  * Pick the best stream for HTML5 playback.
  * SoundCloud and similar services often expose audio-only streams.
@@ -38,11 +101,15 @@ export function pickDefaultStream(
   stream: StreamModel,
   preferredQuality: string,
 ): { stream: StreamUrl | null; useHls: boolean; hlsUrl: string | null } {
-  const progressiveVideo = stream.videoStreams.filter(s => !s.isVideoOnly)
-  const preferredVideo = progressiveVideo.find(s =>
-    s.quality.startsWith(preferredQuality),
-  )
-  const video = preferredVideo ?? progressiveVideo[0]
+  if (stream.service === 'youtube' && stream.hlsUrl) {
+    return {
+      stream: pickProgressiveFallback(stream, preferredQuality),
+      useHls: true,
+      hlsUrl: stream.hlsUrl,
+    }
+  }
+
+  const video = pickProgressiveFallback(stream, preferredQuality)
 
   if (video) {
     return {
