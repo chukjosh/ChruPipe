@@ -74,5 +74,8 @@ object DownloadsTable : Table("downloads") {
     val createdAt = datetime("created_at")
     // Stored so that FAILED downloads can be retried without going back to the watch page
     val streamUrl = varchar("stream_url", 4000).nullable()
+    val audioStreamUrl = varchar("audio_stream_url", 4000).nullable()
+    val subtitleUrl = varchar("subtitle_url", 4000).nullable()
+    val subtitleLanguage = varchar("subtitle_language", 100).nullable()
     override val primaryKey = PrimaryKey(id)
 }

@@ -38,7 +38,7 @@ import {
 import type { StreamUrl, SubtitleTrack } from '../types'
 import {
   getPlayableHlsQualities, pickDefaultStream,
-  pickPreferredHlsLevel, pickProgressiveFallback,
+  pickPreferredHlsLevel, pickProgressiveFallback, pickDownloadStreams,
   proxyMediaUrl, isHlsSource, normalizePreferredQuality,
 } from '../utils/playback'
 import type { HlsQualityOption } from '../utils/playback'
@@ -473,13 +473,15 @@ export default function Watch() {
     if (!stream) return
 
     const chosenPreference = normalizePreferredQuality(preferredQuality)
-    const fallbackStream = pickDefaultStream(stream, chosenPreference).stream ?? selectedStream
-    const downloadStream =
-      !backgroundAudioMode && chosenPreference !== 'auto' && fallbackStream
-        ? fallbackStream
-        : selectedStream ?? fallbackStream
+    const downloadStreams = backgroundAudioMode
+      ? { video: selectedStream, audio: null }
+      : pickDownloadStreams(stream, chosenPreference)
+    const downloadStream = downloadStreams.video ?? selectedStream
 
     if (!downloadStream) return
+    const downloadSubtitle = stream.subtitles.find(subtitle =>
+      /^en(?:[-_]|$)/i.test(subtitle.languageCode) || /\benglish\b/i.test(subtitle.languageName),
+    ) ?? stream.subtitles[0]
 
     await startDownload.mutateAsync({
       videoId: stream.id,
@@ -487,6 +489,9 @@ export default function Watch() {
       uploader: stream.uploader,
       thumbnailUrl: stream.thumbnailUrl,
       streamUrl: downloadStream.url,
+      audioStreamUrl: downloadStreams.video?.isVideoOnly ? downloadStreams.audio?.url : undefined,
+      subtitleUrl: backgroundAudioMode ? undefined : downloadSubtitle?.url,
+      subtitleLanguage: backgroundAudioMode ? undefined : downloadSubtitle?.languageCode,
       quality: downloadStream.quality,
       isAudioOnly: backgroundAudioMode,
     })
