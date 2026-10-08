@@ -151,6 +151,11 @@ Switch services using the dropdown in the search bar. The service selector only 
 | Logback | 1.5.6 | Logging implementation |
 | dotenv-kotlin | 6.4.1 | Environment variable loading |
 
+**Media tooling:**
+| Tool | Version | Purpose |
+|---|---|---|
+| FFmpeg | System package | Losslessly mux separate video and audio streams |
+
 **Testing:**
 | Library | Version | Purpose |
 |---|---|---|
@@ -237,6 +242,7 @@ Switch services using the dropdown in the search bar. The service selector only 
 |---|---|---|
 | JDK | 22 | [adoptium.net](https://adoptium.net) |
 | Node.js | 22 LTS | [nodejs.org](https://nodejs.org) |
+| FFmpeg | Latest | Required for downloads with separate video/audio streams |
 | Git | Any | [git-scm.com](https://git-scm.com) |
 
 ### For Docker (optional but recommended)
@@ -291,6 +297,8 @@ The backend starts on **http://localhost:8080**.
 
 On first run Gradle downloads dependencies - this takes 1–3 minutes.
 Subsequent starts are much faster.
+Install FFmpeg and make it available on `PATH` for merged high-resolution downloads.
+Set `FFMPEG_PATH` if the executable is installed at a non-standard location. Docker installs FFmpeg automatically.
 
 ### 2. Start the frontend
 

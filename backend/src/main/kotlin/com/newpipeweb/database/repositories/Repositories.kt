@@ -486,7 +486,8 @@ object DownloadRepository {
         videoId: String, title: String, uploader: String,
         thumbnailUrl: String, filePath: String,
         quality: String, isAudioOnly: Boolean,
-        streamUrl: String?
+        streamUrl: String?, audioStreamUrl: String?,
+        subtitleUrl: String?, subtitleLanguage: String?
     ): Int = transaction {
         DownloadsTable.insert {
             it[DownloadsTable.videoId] = videoId
@@ -497,6 +498,9 @@ object DownloadRepository {
             it[DownloadsTable.quality] = quality
             it[DownloadsTable.isAudioOnly] = isAudioOnly
             it[DownloadsTable.streamUrl] = streamUrl
+            it[DownloadsTable.audioStreamUrl] = audioStreamUrl
+            it[DownloadsTable.subtitleUrl] = subtitleUrl
+            it[DownloadsTable.subtitleLanguage] = subtitleLanguage
             it[status] = "PENDING"
             it[createdAt] = LocalDateTime.now()
         }[DownloadsTable.id]
@@ -545,17 +549,18 @@ object DownloadRepository {
      * Returns the streamUrl needed to restart the background job, or null if
      * none was stored (e.g. old records created before this column existed).
      */
-    fun resetForRetry(id: Int): String? = transaction {
+    fun resetForRetry(id: Int): Pair<String, String?>? = transaction {
         val row = DownloadsTable.selectAll()
             .where { DownloadsTable.id eq id }
             .firstOrNull() ?: return@transaction null
-        val url = row[DownloadsTable.streamUrl]
+        val videoUrl = row[DownloadsTable.streamUrl] ?: return@transaction null
+        val audioUrl = row[DownloadsTable.audioStreamUrl]
         DownloadsTable.update({ DownloadsTable.id eq id }) {
             it[status] = "PENDING"
             it[downloadedBytes] = 0
             it[fileSize] = -1
         }
-        url
+        videoUrl to audioUrl
     }
 
     private fun ResultRow.toDownloadModel() = DownloadModel(
@@ -571,6 +576,9 @@ object DownloadRepository {
         quality = this[DownloadsTable.quality],
         isAudioOnly = this[DownloadsTable.isAudioOnly],
         createdAt = this[DownloadsTable.createdAt].format(formatter),
-        streamUrl = this[DownloadsTable.streamUrl]
+        streamUrl = this[DownloadsTable.streamUrl],
+        audioStreamUrl = this[DownloadsTable.audioStreamUrl],
+        subtitleUrl = this[DownloadsTable.subtitleUrl],
+        subtitleLanguage = this[DownloadsTable.subtitleLanguage]
     )
 }

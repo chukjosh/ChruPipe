@@ -29,7 +29,10 @@ FROM eclipse-temurin:22-jre
 
 WORKDIR /app
 
-RUN mkdir -p /app/data /app/downloads
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ffmpeg \
+ && rm -rf /var/lib/apt/lists/* \
+ && mkdir -p /app/data /app/downloads
 
 COPY --from=builder /app/build/libs/app.jar app.jar
 

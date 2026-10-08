@@ -79,6 +79,37 @@ export function pickProgressiveFallback(
     ?? null
 }
 
+export function pickDownloadStreams(
+  stream: StreamModel,
+  preferredQuality: string,
+): { video: StreamUrl | null; audio: StreamUrl | null } {
+  const audioStreams = stream.audioStreams
+    .filter(s => !isHlsSource(s.url, s.format))
+    .sort((a, b) => (resolutionHeight(b.quality) ?? 0) - (resolutionHeight(a.quality) ?? 0))
+  const candidates = stream.videoStreams
+    .filter(s => !isHlsSource(s.url, s.format) && (!s.isVideoOnly || audioStreams.length > 0))
+    .sort((a, b) => {
+      const heightDifference = (resolutionHeight(b.quality) ?? 0) - (resolutionHeight(a.quality) ?? 0)
+      return heightDifference || Number(a.isVideoOnly) - Number(b.isVideoOnly)
+    })
+
+  const normalizedPreferred = normalizePreferredQuality(preferredQuality)
+  const preferredHeight = normalizedPreferred === 'auto'
+    ? null
+    : resolutionHeight(normalizedPreferred)
+  const video = preferredHeight === null
+    ? candidates[0] ?? null
+    : candidates.find(s => resolutionHeight(s.quality) === preferredHeight)
+      ?? candidates.find(s => (resolutionHeight(s.quality) ?? 0) < preferredHeight)
+      ?? candidates[0]
+      ?? null
+
+  return {
+    video,
+    audio: video?.isVideoOnly ? audioStreams[0] ?? null : null,
+  }
+}
+
 function hlsLevelIsPlayable(level: HlsLevelInfo): boolean {
   if (level.supported === false) return false
 
