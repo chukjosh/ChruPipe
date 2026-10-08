@@ -1,7 +1,7 @@
 /**
  * client.ts
  *
- * All API calls to the NewPipeWeb Ktor backend.
+ * All API calls to the LocoStream Ktor backend.
  * Uses axios with a base URL of /api (proxied to localhost:8080 in dev,
  * and proxied by nginx in production Docker).
  *

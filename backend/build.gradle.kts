@@ -5,11 +5,11 @@ plugins {
     application
 }
 
-group = "com.newpipeweb"
+group = "com.locostream"
 version = "1.0.0"
 
 application {
-    mainClass = "com.newpipeweb.ApplicationKt"
+    mainClass = "com.locostream.ApplicationKt"
 }
 
 tasks.named<JavaExec>("run") {

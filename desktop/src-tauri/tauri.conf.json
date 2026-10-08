@@ -1,5 +1,5 @@
 {
-  "productName": "NewPipeWeb",
+  "productName": "LocoStream",
   "version": "1.0.0",
   "identifier": "com.newpipeweb.app",
   "description": "A full-featured, self-hosted frontend for YouTube, SoundCloud, PeerTube and more, built on top of NewPipeExtractor.",
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "NewPipeWeb",
+        "title": "LocoStream",
         "width": 1280,
         "height": 800,
         "minWidth": 800,

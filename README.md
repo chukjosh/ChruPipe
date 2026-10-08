@@ -1,16 +1,14 @@
-# NewPipeWeb
+# LocoStream
 
 A full-featured, self-hosted frontend for YouTube, SoundCloud, PeerTube and more, built on top of [NewPipeExtractor](https://github.com/TeamNewPipe/NewPipeExtractor).
 
 Licensed under [GPL-3.0](LICENSE) - the same license as NewPipeExtractor.
 No Google account required. No ads. No tracking.
 
-> **Note:** This is an independent project, not affiliated with or endorsed by the
-> [NewPipe](https://github.com/TeamNewPipe/NewPipe) team. It's built on top of their
-> [NewPipeExtractor](https://github.com/TeamNewPipe/NewPipeExtractor) library, but is a
-> separate codebase with its own maintainers.
+> **Note:** LocoStream is an independent project and is not affiliated with or endorsed by TeamNewPipe or NewPipe e.V.
+> It uses [NewPipeExtractor](https://github.com/TeamNewPipe/NewPipeExtractor) where applicable, and credits the upstream developers and contributors for their work.
 >
-> NewPipeWeb exists to make the same private, ad-free viewing experience accessible from
+> LocoStream exists to make the same private, ad-free viewing experience accessible from
 > any device with a browser, desktop, mobile, or otherwise, rather than being tied to a
 > single platform. This matters more as Google increasingly locks down what can be
 > sideloaded and run on Android, a web-based, self-hosted frontend isn't subject to
@@ -264,7 +262,7 @@ Switch services using the dropdown in the search bar. The service selector only 
 
 ```bash
 # 1. Clone or unzip the project
-cd NewPipeWeb
+cd LocoStream
 
 # 2. Start everything with Docker
 docker compose up --build
@@ -634,7 +632,7 @@ See [SponsorBlock categories](https://wiki.sponsor.ajay.app/w/Segment_Categories
 SponsorBlock is a community-driven project that crowdsources timestamps for
 skippable segments in YouTube videos.
 
-### How it works in NewPipe Web
+### How it works in LocoStream
 
 1. Go to **Settings** and enable **SponsorBlock**.
 2. Choose which segment categories you want to skip.
@@ -770,7 +768,7 @@ once the backend is running.
 ## Project Structure
 
 ```
-NewPipeWeb/
+LocoStream/
 │
 ├── backend/                         Kotlin + Ktor API server
 │   ├── build.gradle.kts             Dependencies (NewPipeExtractor, Exposed, etc.)
