@@ -27,7 +27,6 @@ backend/*.war
 # ========================================
 # Frontend (Node + Vite + React)
 # ========================================
-frontend/node_modules/
 frontend/dist/
 frontend/.vite/
 frontend/.cache/
@@ -35,7 +34,6 @@ frontend/.cache/
 # ========================================
 # Desktop App (Tauri + Rust)
 # ========================================
-desktop/node_modules/
 desktop/dist/
 desktop/src-tauri/target/
 desktop/src-tauri/Cargo.lock
