@@ -1,7 +1,7 @@
 {
-  "productName": "LocoStream",
+  "productName": "ChruPipe",
   "version": "1.0.0",
-  "identifier": "com.newpipeweb.app",
+  "identifier": "com.chrupipe.app",
   "description": "A full-featured, self-hosted frontend for YouTube, SoundCloud, PeerTube and more, built on top of NewPipeExtractor.",
   "build": {
     "beforeDevCommand": "",
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "LocoStream",
+        "title": "ChruPipe",
         "width": 1280,
         "height": 800,
         "minWidth": 800,

@@ -1,4 +1,4 @@
-package com.locostream.plugins
+package com.chrupipe.plugins
 
 import io.ktor.http.*
 import io.ktor.server.application.*

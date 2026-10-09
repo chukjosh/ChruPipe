@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: LocoStream API
+  title: ChruPipe API
   version: 1.0.0
   description: API for media search, playback metadata, local user data, exports/imports, downloads, and settings management.
 servers:

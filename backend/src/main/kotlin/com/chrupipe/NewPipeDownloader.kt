@@ -1,4 +1,4 @@
-package com.locostream
+package com.chrupipe
 
 import org.schabi.newpipe.extractor.downloader.Downloader
 import org.schabi.newpipe.extractor.downloader.Request
