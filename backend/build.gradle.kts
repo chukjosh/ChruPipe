@@ -5,11 +5,11 @@ plugins {
     application
 }
 
-group = "com.locostream"
+group = "com.chrupipe"
 version = "1.0.0"
 
 application {
-    mainClass = "com.locostream.ApplicationKt"
+    mainClass = "com.chrupipe.ApplicationKt"
 }
 
 tasks.named<JavaExec>("run") {

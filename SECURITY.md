@@ -1,6 +1,6 @@
 # Security Policy
 
-LocoStream is a self-hosted application. Since you run your own instance and control your own data, most of your security posture depends on how you deploy it, not just the code itself. This document covers both how to report a vulnerability and how to deploy safely.
+ChruPipe is a self-hosted application. Since you run your own instance and control your own data, most of your security posture depends on how you deploy it, not just the code itself. This document covers both how to report a vulnerability and how to deploy safely.
 
 ## Supported versions
 
@@ -24,10 +24,10 @@ You can expect an initial response within a few days. This is a community projec
 A few things worth knowing if you're self-hosting:
 
 * **CORS is private-network-only by default.** The backend only trusts `localhost` and RFC-1918 private IPs (`10.x`, `172.16-31.x`, `192.168.x`) out of the box. If you expose the app through a reverse proxy on a public domain, you must explicitly add that domain via the `ALLOWED_ORIGINS` environment variable, nothing is trusted automatically. See the [README's Configuration section](./README.md#configuration).
-* **No built-in authentication.** LocoStream itself does not have a login system. If you expose it beyond your local network, put it behind your own authentication layer (e.g. a reverse proxy with Basic Auth, like the Apache config in some issue reports, or a VPN/Tailscale-only setup).
+* **No built-in authentication.** ChruPipe itself does not have a login system. If you expose it beyond your local network, put it behind your own authentication layer (e.g. a reverse proxy with Basic Auth, like the Apache config in some issue reports, or a VPN/Tailscale-only setup).
 * **Downloaded files and your database are stored unencrypted** in the `./data/` and `./downloads/` directories. Treat access to the host machine accordingly.
 * **Environment variables containing secrets should never be committed.** Use `.env` (gitignored) rather than hardcoding anything in `docker-compose.yml` or source files.
 
 ## Scope
 
-This policy covers the LocoStream backend, frontend, and desktop app in this repository. It does not cover [NewPipeExtractor](https://github.com/TeamNewPipe/NewPipeExtractor) itself, report issues with that library to its own maintainers, we are not affiliated with the NewPipe team.
+This policy covers the ChruPipe backend, frontend, and desktop app in this repository. It does not cover [NewPipeExtractor](https://github.com/TeamNewPipe/NewPipeExtractor) itself, report issues with that library to its own maintainers, we are not affiliated with the NewPipe team.

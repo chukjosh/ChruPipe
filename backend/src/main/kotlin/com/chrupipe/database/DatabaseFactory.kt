@@ -1,7 +1,7 @@
-package com.locostream.database
+package com.chrupipe.database
 
-import com.locostream.database.tables.*
-import com.locostream.util.resolveDataDir
+import com.chrupipe.database.tables.*
+import com.chrupipe.util.resolveDataDir
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.transactions.transaction

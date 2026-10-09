@@ -71,7 +71,7 @@ export default function Settings() {
   const handleExportAll = async () => {
     try {
       const payload = await appDataApi.exportAll()
-      downloadJson('locostream-data-export.json', payload)
+      downloadJson('chrupipe-data-export.json', payload)
       showToast('All data exported')
     } catch {
       showToast('Export failed', 'error')
@@ -428,11 +428,11 @@ export default function Settings() {
       <section>
         <h2 className="text-lg font-semibold mb-4 text-neutral-200">About</h2>
         <div className="bg-neutral-900 rounded-xl p-4 space-y-2 text-sm text-neutral-400">
-          <p><span className="text-neutral-200 font-medium">LocoStream</span> v1.0.0</p>
+          <p><span className="text-neutral-200 font-medium">ChruPipe</span> v1.0.0</p>
           <p>Powered by <span className="text-neutral-200">NewPipeExtractor v0.26.0</span></p>
           <p>
             <a
-              href="https://github.com/chukjosh/LocoStream"
+              href="https://github.com/chukjosh/ChruPipe"
               target="_blank"
               rel="noopener noreferrer"
               className="text-red-400 hover:underline"
@@ -451,7 +451,7 @@ export default function Settings() {
             </a>
           </p>
           <p className="text-xs pt-2">
-            LocoStream is an independent project and is not affiliated with or endorsed by TeamNewPipe or NewPipe e.V.
+            ChruPipe is an independent project and is not affiliated with or endorsed by TeamNewPipe or NewPipe e.V.
             It uses NewPipeExtractor where applicable and credits its upstream developers and contributors.
           </p>
         </div>

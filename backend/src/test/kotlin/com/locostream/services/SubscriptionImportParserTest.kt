@@ -1,6 +1,6 @@
-package com.locostream.services
+package com.chrupipe.services
 
-import com.locostream.models.SubscribeRequest
+import com.chrupipe.models.SubscribeRequest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -47,6 +47,50 @@ class SubscriptionImportParserTest {
                 service = "youtube"
             )),
             subscriptions
+        )
+    }
+
+    @Test
+    fun `json import accepts exported envelope payloads and deduplicates urls`() {
+        val subscriptions = SubscriptionImportParser.parse(
+            """
+            {
+              "schemaVersion": 1,
+              "type": "subscriptions",
+              "data": [
+                {
+                  "channelId": "UC123",
+                  "channelName": "Alpha",
+                  "channelUrl": "https://www.youtube.com/@alpha",
+                  "avatarUrl": "https://example.com/avatar.png",
+                  "service": "youtube"
+                },
+                {
+                  "channelId": "UC123",
+                  "channelName": "Alpha",
+                  "channelUrl": "https://www.youtube.com/@alpha",
+                  "avatarUrl": "https://example.com/avatar.png",
+                  "service": "youtube"
+                },
+                {
+                  "channelId": "UC456",
+                  "channelName": "Beta",
+                  "channelUrl": "https://www.youtube.com/@beta",
+                  "avatarUrl": "https://example.com/beta.png",
+                  "service": "youtube"
+                }
+              ]
+            }
+            """.trimIndent(),
+            "json"
+        )
+
+        assertEquals(
+            listOf(
+                "https://www.youtube.com/@alpha",
+                "https://www.youtube.com/@beta"
+            ),
+            subscriptions.map { it.channelUrl }
         )
     }
 }

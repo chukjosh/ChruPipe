@@ -1,1 +1,1 @@
-rootProject.name = "locostream-backend"
+rootProject.name = "chrupipe-backend"

@@ -1,4 +1,4 @@
-package com.locostream.database.tables
+package com.chrupipe.database.tables
 
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.javatime.datetime

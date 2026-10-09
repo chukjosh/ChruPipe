@@ -1,4 +1,4 @@
-package com.locostream.util
+package com.chrupipe.util
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -14,18 +14,25 @@ data class StorageSettings(
 
 /** Repository for reading/writing the settings.json file */
 object StorageSettingsRepository {
-    // Use OS‑specific config directory; fall back to user home .config
+    // Use OS-specific config directory; fall back to user home .config.
     private val configDir: File = run {
         val env = System.getenv("APPDATA")
-        if (env != null) File(env, "LocoStream")
-        else File(System.getProperty("user.home"), ".config/LocoStream")
+        if (env != null) File(env, "ChruPipe")
+        else File(System.getProperty("user.home"), ".config/ChruPipe")
     }
     private val settingsFile = File(configDir, "settings.json")
+    private val legacySettingsFile: File = run {
+        val env = System.getenv("APPDATA")
+        val legacyConfigDir = if (env != null) File(env, "ChruPipe")
+        else File(System.getProperty("user.home"), ".config/ChruPipe")
+        File(legacyConfigDir, "settings.json")
+    }
     private val json = Json { prettyPrint = true; ignoreUnknownKeys = true }
 
-    fun load(): StorageSettings? = if (settingsFile.exists()) {
-        json.decodeFromString(StorageSettings.serializer(), settingsFile.readText())
-    } else null
+    fun load(): StorageSettings? = (if (settingsFile.exists()) settingsFile else legacySettingsFile).let { file ->
+        if (file.exists()) json.decodeFromString(StorageSettings.serializer(), file.readText())
+        else null
+    }
 
     fun save(settings: StorageSettings) {
         if (!configDir.exists()) configDir.mkdirs()

@@ -7,9 +7,9 @@
  *   - Local routes: read/write the SQLite database for user data
  */
 
-package com.locostream.plugins
+package com.chrupipe.plugins
 
-import com.locostream.routes.*
+import com.chrupipe.routes.*
 import io.ktor.server.application.*
 import io.ktor.server.routing.*
 

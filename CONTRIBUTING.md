@@ -1,4 +1,4 @@
-LocoStream contribution guidelines
+ChruPipe contribution guidelines
 =================================
 
 ## AI policy

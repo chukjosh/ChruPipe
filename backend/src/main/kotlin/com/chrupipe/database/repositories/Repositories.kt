@@ -1,7 +1,7 @@
-package com.locostream.database.repositories
+package com.chrupipe.database.repositories
 
-import com.locostream.database.tables.*
-import com.locostream.models.*
+import com.chrupipe.database.tables.*
+import com.chrupipe.models.*
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
