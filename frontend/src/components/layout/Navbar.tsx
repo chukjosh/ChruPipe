@@ -80,9 +80,9 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
               aria-label="Go home"
             >
               <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">LS</span>
+                <span className="text-white font-bold text-sm">CP</span>
               </div>
-              <span className="font-bold text-lg hidden sm:block">LocoStream</span>
+              <span className="font-bold text-lg hidden sm:block">ChruPipe</span>
             </button>
           </div>
 

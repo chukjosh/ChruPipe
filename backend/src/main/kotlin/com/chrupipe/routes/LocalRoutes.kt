@@ -1,9 +1,9 @@
-package com.locostream.routes
+package com.chrupipe.routes
 
-import com.locostream.database.repositories.*
-import com.locostream.models.*
-import com.locostream.services.ExtractorService
-import com.locostream.services.SubscriptionImportParser
+import com.chrupipe.database.repositories.*
+import com.chrupipe.models.*
+import com.chrupipe.services.ExtractorService
+import com.chrupipe.services.SubscriptionImportParser
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
@@ -263,7 +263,7 @@ fun Route.dataRoutes() {
         get {
             call.respond(
                 mapOf(
-                    "name" to "LocoStream Backend",
+                    "name" to "ChruPipe Backend",
                     "status" to "live",
                     "message" to "Backend is running",
                     "docs" to "/docs",
@@ -275,7 +275,7 @@ fun Route.dataRoutes() {
         get("/health") {
             call.respond(
                 mapOf(
-                    "name" to "LocoStream Backend",
+                    "name" to "ChruPipe Backend",
                     "status" to "healthy",
                     "message" to "Backend is running",
                     "docs" to "/docs",
@@ -337,7 +337,7 @@ fun Route.docsRoutes() {
             <head>
                 <meta charset="UTF-8" />
                 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-                <title>LocoStream API Docs</title>
+                <title>ChruPipe API Docs</title>
                 <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5.17.14/swagger-ui.css" />
                 <style>
                     :root {
@@ -454,7 +454,7 @@ fun Route.docsRoutes() {
                 <script>
                     const root = document.documentElement;
                     const themeToggle = document.getElementById('theme-toggle');
-                    const savedTheme = window.localStorage.getItem('locostream-docs-theme');
+                    const savedTheme = window.localStorage.getItem('chrupipe-docs-theme') || window.localStorage.getItem('chrupipe-docs-theme');
                     const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
 
                     function setTheme(theme) {
@@ -462,7 +462,7 @@ fun Route.docsRoutes() {
                         root.classList.toggle('dark-mode', isDark);
                         themeToggle.textContent = isDark ? 'Use light mode' : 'Use dark mode';
                         themeToggle.setAttribute('aria-pressed', String(isDark));
-                        window.localStorage.setItem('locostream-docs-theme', isDark ? 'dark' : 'light');
+                        window.localStorage.setItem('chrupipe-docs-theme', isDark ? 'dark' : 'light');
                     }
 
                     setTheme(savedTheme || (prefersDark ? 'dark' : 'light'));
@@ -493,15 +493,15 @@ fun Route.docsRoutes() {
 
     get("/openapi.yaml") {
         val yamlText = Thread.currentThread().contextClassLoader
-            .getResourceAsStream("openapi/locostream-openapi.yaml")
+            .getResourceAsStream("openapi/chrupipe-openapi.yaml")
             ?.bufferedReader()
             ?.use { it.readText() }
             ?: """
             openapi: 3.0.3
             info:
-              title: LocoStream API
+              title: ChruPipe API
               version: 1.0.0
-              description: Backend API documentation for LocoStream.
+              description: Backend API documentation for ChruPipe.
             servers:
               - url: http://127.0.0.1:8080
             paths:
@@ -539,7 +539,7 @@ fun Route.feedRoutes() {
         val feedVideos = subscriptions
             .flatMap { subscription ->
                 try {
-                    val channel = com.locostream.services.ExtractorService.getChannel(subscription.channelUrl)
+                    val channel = com.chrupipe.services.ExtractorService.getChannel(subscription.channelUrl)
                     channel.videos.take(5) // latest 5 per channel
                 } catch (e: Exception) {
                     emptyList()

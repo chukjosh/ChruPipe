@@ -1,13 +1,22 @@
-package com.locostream.services
+package com.chrupipe.services
 
-import com.locostream.models.SubscribeRequest
+import com.chrupipe.models.SubscribeRequest
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.decodeFromJsonElement
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
 
 object SubscriptionImportParser {
     private val json = Json {
         ignoreUnknownKeys = true
         allowTrailingComma = true
+        isLenient = true
     }
 
     @Serializable
@@ -32,7 +41,7 @@ object SubscriptionImportParser {
         return raw.lineSequence()
             .map { it.trim() }
             .filter { it.isNotEmpty() }
-            .distinct()
+            .distinctBy { it.lowercase() }
             .map { url ->
                 SubscribeRequest(
                     channelId = url,
@@ -48,7 +57,14 @@ object SubscriptionImportParser {
     fun parseJson(raw: String): List<SubscribeRequest> {
         if (raw.isBlank()) return emptyList()
 
-        return json.decodeFromString<List<SubscriptionImportEntry>>(raw)
+        val root = json.parseToJsonElement(raw)
+        val entries = when (root) {
+            is JsonArray -> root
+            is JsonObject -> resolveJsonObjectEntries(root)
+            else -> JsonArray(emptyList())
+        }
+
+        return json.decodeFromJsonElement<List<SubscriptionImportEntry>>(entries)
             .mapNotNull { entry ->
                 val channelUrl = entry.channelUrl?.trim()?.takeIf { it.isNotEmpty() }
                     ?: return@mapNotNull null
@@ -61,5 +77,19 @@ object SubscriptionImportParser {
                     service = entry.service?.takeIf { it.isNotBlank() } ?: "youtube"
                 )
             }
+            .distinctBy { it.channelUrl.lowercase() }
+    }
+
+    private fun resolveJsonObjectEntries(root: JsonObject): JsonElement {
+        val directEntry = root.takeIf { candidate ->
+            candidate.containsKey("channelUrl") || candidate.containsKey("channelId")
+        }
+        if (directEntry != null) return JsonArray(listOf(directEntry))
+
+        return root["data"]
+            ?: root["subscriptions"]
+            ?: root["items"]
+            ?: root["entries"]
+            ?: throw IllegalArgumentException("Import payload must be a JSON array or object containing a subscription list")
     }
 }

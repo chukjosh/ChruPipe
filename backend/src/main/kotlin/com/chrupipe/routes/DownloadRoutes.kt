@@ -1,8 +1,8 @@
-package com.locostream.routes
+package com.chrupipe.routes
 
-import com.locostream.database.repositories.DownloadRepository
-import com.locostream.models.StartDownloadRequest
-import com.locostream.util.resolveDownloadsDir
+import com.chrupipe.database.repositories.DownloadRepository
+import com.chrupipe.models.StartDownloadRequest
+import com.chrupipe.util.resolveDownloadsDir
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.request.*

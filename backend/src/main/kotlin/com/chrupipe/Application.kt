@@ -1,7 +1,7 @@
-package com.locostream
+package com.chrupipe
 
-import com.locostream.database.DatabaseFactory
-import com.locostream.plugins.*
+import com.chrupipe.database.DatabaseFactory
+import com.chrupipe.plugins.*
 import io.github.cdimascio.dotenv.dotenv
 import io.ktor.server.application.*
 import io.ktor.server.engine.*

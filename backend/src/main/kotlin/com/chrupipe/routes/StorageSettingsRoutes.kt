@@ -1,8 +1,8 @@
-package com.locostream.routes
+package com.chrupipe.routes
 
-import com.locostream.util.resolveDataDir
-import com.locostream.util.resolveDownloadsDir
-import com.locostream.util.StorageSettingsRepository
+import com.chrupipe.util.resolveDataDir
+import com.chrupipe.util.resolveDownloadsDir
+import com.chrupipe.util.StorageSettingsRepository
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
@@ -35,7 +35,7 @@ fun Route.storageSettingsRoutes() {
             val payload = call.receive<SettingsPayload>()
             // Load existing settings (if any)
             val existing = StorageSettingsRepository.load()
-            val newSettings = com.locostream.util.StorageSettings(
+            val newSettings = com.chrupipe.util.StorageSettings(
                 downloadsDir = payload.downloadsDir ?: existing?.downloadsDir,
                 dataDir = payload.dataDir ?: existing?.dataDir,
                 trendingCountry = payload.trendingCountry ?: existing?.trendingCountry ?: "US"

@@ -1,14 +1,14 @@
-# LocoStream
+# ChruPipe
 
 A full-featured, self-hosted frontend for YouTube, SoundCloud, PeerTube and more, built on top of [NewPipeExtractor](https://github.com/TeamNewPipe/NewPipeExtractor).
 
 Licensed under [GPL-3.0](LICENSE) - the same license as NewPipeExtractor.
 No Google account required. No ads. No tracking.
 
-> **Note:** LocoStream is an independent project and is not affiliated with or endorsed by TeamNewPipe or NewPipe e.V.
+> **Note:** ChruPipe is an independent project and is not affiliated with or endorsed by TeamNewPipe or NewPipe e.V.
 > It uses [NewPipeExtractor](https://github.com/TeamNewPipe/NewPipeExtractor) where applicable, and credits the upstream developers and contributors for their work.
 >
-> LocoStream exists to make the same private, ad-free viewing experience accessible from
+> ChruPipe exists to make the same private, ad-free viewing experience accessible from
 > any device with a browser, desktop, mobile, or otherwise, rather than being tied to a
 > single platform. This matters more as Google increasingly locks down what can be
 > sideloaded and run on Android, a web-based, self-hosted frontend isn't subject to
@@ -262,7 +262,7 @@ Switch services using the dropdown in the search bar. The service selector only 
 
 ```bash
 # 1. Clone or unzip the project
-cd LocoStream
+cd ChruPipe
 
 # 2. Start everything with Docker
 docker compose up --build
@@ -632,7 +632,7 @@ See [SponsorBlock categories](https://wiki.sponsor.ajay.app/w/Segment_Categories
 SponsorBlock is a community-driven project that crowdsources timestamps for
 skippable segments in YouTube videos.
 
-### How it works in LocoStream
+### How it works in ChruPipe
 
 1. Go to **Settings** and enable **SponsorBlock**.
 2. Choose which segment categories you want to skip.
@@ -768,12 +768,12 @@ once the backend is running.
 ## Project Structure
 
 ```
-LocoStream/
+ChruPipe/
 │
 ├── backend/                         Kotlin + Ktor API server
 │   ├── build.gradle.kts             Dependencies (NewPipeExtractor, Exposed, etc.)
 │   ├── Dockerfile
-│   └── src/main/kotlin/com/newpipeweb/
+│   └── src/main/kotlin/com/chrupipe/
 │       ├── Application.kt           Entry point
 │       ├── NewPipeDownloader.kt     HTTP adapter for NewPipeExtractor
 │       ├── plugins/                 Ktor plugin configs (CORS, routing, etc.)

@@ -22,10 +22,10 @@
  *   5 = Odysee        https://odysee.com
  */
 
-package com.locostream.services
+package com.chrupipe.services
 
-import com.locostream.models.*
-import com.locostream.util.StorageSettingsRepository
+import com.chrupipe.models.*
+import com.chrupipe.util.StorageSettingsRepository
 import org.schabi.newpipe.extractor.NewPipe
 import org.schabi.newpipe.extractor.StreamingService
 import org.schabi.newpipe.extractor.channel.ChannelInfo

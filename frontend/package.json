@@ -1,6 +1,6 @@
 {
   "type": "module",
-  "name": "locostream-frontend",
+  "name": "chrupipe-frontend",
   "version": "1.0.0",
   "packageManager": "pnpm@12.5.1",
   "description": "A full-featured, self-hosted frontend for YouTube, SoundCloud, PeerTube and more, built on top of NewPipeExtractor.",

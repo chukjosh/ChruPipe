@@ -8,7 +8,7 @@
  * Every model that crosses the API boundary must be annotated @Serializable.
  */
 
-package com.locostream.models
+package com.chrupipe.models
 
 import kotlinx.serialization.Serializable
 

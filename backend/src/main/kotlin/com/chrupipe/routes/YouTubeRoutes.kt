@@ -12,11 +12,11 @@
  *   GET /services                              → list all supported services
  */
 
-package com.locostream.routes
+package com.chrupipe.routes
 
-import com.locostream.models.ServiceInfoModel
-import com.locostream.services.ExtractorService
-import com.locostream.services.StreamExtractionErrorClassifier
+import com.chrupipe.models.ServiceInfoModel
+import com.chrupipe.services.ExtractorService
+import com.chrupipe.services.StreamExtractionErrorClassifier
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*

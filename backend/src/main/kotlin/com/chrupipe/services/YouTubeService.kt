@@ -1,6 +1,6 @@
-package com.locostream.services
+package com.chrupipe.services
 
-import com.locostream.models.*
+import com.chrupipe.models.*
 import org.schabi.newpipe.extractor.ServiceList.YouTube
 import org.schabi.newpipe.extractor.comments.CommentsInfo
 import org.schabi.newpipe.extractor.search.SearchInfo

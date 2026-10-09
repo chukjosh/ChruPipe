@@ -1,4 +1,4 @@
-package com.locostream.services
+package com.chrupipe.services
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -39,6 +39,19 @@ class StreamExtractionErrorClassifierTest {
 
         assertEquals(
             "Failed to extract stream from https://www.youtube.com/watch?v=dQw4w9WgXcQ: video unavailable",
+            message
+        )
+    }
+
+    @Test
+    fun `soundcloud socket timeout without a message still uses the retry guidance`() {
+        val message = StreamExtractionErrorClassifier.describe(
+            "https://soundcloud.com/free-music-egypt/tayeh-fel-amaken",
+            java.net.SocketTimeoutException()
+        )
+
+        assertEquals(
+            "SoundCloud is responding slowly or could not be reached. Try again in a moment.",
             message
         )
     }
