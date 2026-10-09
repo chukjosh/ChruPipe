@@ -1,5 +1,7 @@
 # ChruPipe
 
+> **ChruPipe** is pronounced **"CHROO-pipe"**: "Chru" rhymes with *true* and *blue*, and "pipe" is just *pipe*. 🔊 /tʃruː paɪp/
+
 A full-featured, self-hosted frontend for YouTube, SoundCloud, PeerTube and more, built on top of [NewPipeExtractor](https://github.com/TeamNewPipe/NewPipeExtractor).
 
 Licensed under [GPL-3.0](LICENSE) - the same license as NewPipeExtractor.
